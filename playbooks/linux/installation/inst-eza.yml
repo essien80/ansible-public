@@ -1,0 +1,52 @@
+---
+- name: Install and configure eza
+  hosts: '{{ target_hosts | d([]) }}'
+  vars:
+    bashrcpath: "~/.bashrc"  # set to correct path for your system
+    key_path: "/etc/apt/trusted.gpg.d/gierens.gpg"  # set to correct path for your system
+  become: true
+  tasks:
+
+    - name: Install GPG
+      ansible.builtin.apt:
+        name: gpg
+        state: present
+        update_cache: true
+
+    - name: Check if eza key exists
+      become: true
+      ansible.builtin.stat:
+        path: '{{ key_path }}'
+      changed_when: false
+      register: repo_key
+
+    - name: Install Key if missing
+      when: not repo_key.stat.exists
+      block:
+        - name: Download eza key
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/eza-community/eza/main/deb.asc
+            dest: /tmp/gierens.asc
+            mode: '0755'
+          register: key_downloaded
+
+        - name: Add eza key
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              cat /tmp/gierens.asc  | gpg --dearmor -o /etc/apt/trusted.gpg.d/gierens.gpg
+            executable: /bin/bash
+          become: true
+          changed_when: key_downloaded.failed == 'False'
+
+    - name: Add eza repositories
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/gierens.gpg] http://deb.gierens.de stable main"
+        state: present
+        filename: gierens
+
+    - name: Install eza
+      ansible.builtin.apt:
+        name: eza
+        state: present
+        update_cache: true

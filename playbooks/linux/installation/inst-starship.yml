@@ -1,0 +1,48 @@
+---
+- name: Install and Configure Starship console add-on
+  hosts: '{{ target_hosts | d([]) }}'
+  vars:
+    bashrcpath: "~/.bashrc"  # set to correct path for your system
+    starship_install_dir: "/usr/local/bin/starship"  # set to correct path for your system
+  tasks:
+
+    - name: Check if starship exists
+      become: true
+      ansible.builtin.stat:
+        path: '{{ starship_install_dir }}'
+      changed_when: false
+      register: starship_binary
+
+    - name: Check if starship exists
+      when: not starship_binary.stat.exists
+      block:
+        - name: Get starship install script
+          ansible.builtin.get_url:
+            url: https://starship.rs/install.sh
+            dest: /tmp/starship_install.sh
+            mode: '0755'
+          register: starship_installed
+
+        - name: Install starship
+          ansible.builtin.shell:
+            cmd: /tmp/starship_install.sh --yes
+            executable: /bin/sh
+          become: true
+          changed_when: starship_installed.failed == 'False'
+
+    - name: Copy starShip config
+      ansible.builtin.copy:
+        src: ../../../templates/.starship
+        dest: ~/
+        backup: true
+        mode: preserve
+
+    - name: Add starship to bashrc
+      ansible.builtin.blockinfile:
+        path: "{{ bashrcpath }}"
+        block: |
+          export STARSHIP_CONFIG=~/.starship/starship.toml
+          eval "$(starship init bash)"
+        state: present
+        create: true
+        mode: "0644"

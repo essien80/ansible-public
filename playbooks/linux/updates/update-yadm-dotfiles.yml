@@ -1,0 +1,35 @@
+---
+- name: Update yadm repo
+  hosts: '{{ target_hosts | d([]) }}'
+  vars:
+    repo_url: cronushome-git@vs-ssh.visualstudio.com:v3/cronushome-git/dotfiles/dotfiles
+    yadm_path: ~/.local/share/yadm/repo.git/
+    known_hosts_path: ~/.ssh/known_hosts
+  tasks:
+
+    - name: Check if yadm dir exists
+      ansible.builtin.stat:
+        path: '{{ yadm_path }}'
+      register: yadm_path_present
+
+    - name: Check yadm repo status
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          yadm fetch; yadm status | grep 'Your branch'
+        executable: /bin/bash
+      register: status_check
+      changed_when: yadm_path_present.stat.exists
+
+    - name: Status Debug
+      ansible.builtin.debug:
+        msg:
+          - "Behind: {{ 'behind' in  status_check.stdout }}"
+
+    - name: Pull yadm repo
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          yadm pull
+        executable: /bin/bash
+      changed_when: "'behind' in  status_check.stdout"

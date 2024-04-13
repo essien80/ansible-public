@@ -1,0 +1,81 @@
+---
+- name: Install and configure glusterfs
+  hosts: 'all'
+  vars:
+    data_disk: "/dev/vdb"
+    gluster_mnt_root: "/mnt/docker-storage"
+    gluster_storage_root: "/data/glusterfs/docker-vol/brick1"
+  become: true
+
+  tasks:
+    - name: Install GlusterFS engine
+      ansible.builtin.apt:
+        name: glusterfs-server 
+        update_cache: false
+
+    - name: Start and enable docker engine
+      ansible.builtin.service:
+        name: glusterd
+        state: started
+        enabled: true     
+
+    - name: Update host file with all cluster machines
+      blockinfile:
+        backup: yes
+        path: /etc/hosts
+        block: |
+          {% for host in groups['all'] %} 
+          {{ hostvars[host]['ansible_facts']['eth0']['ipv4']['address'] }} {{ hostvars[host]['ansible_facts']['fqdn'] }} {{ hostvars[host]['ansible_facts']['hostname'] }} 
+          {% endfor %}
+
+    - name: Create gluster backend dockter-storage directory
+      ansible.builtin.file:
+        path: {{ gluster_storage_root }}
+        state: directory
+        owner: "{{ lookup('env', 'USER') }}"
+        group: docker
+        mode: 0775        
+
+    - name: Create dockter-storager directory in /mnt
+      ansible.builtin.file:
+        path: {{ gluster_mnt_root }}
+        state: directory
+        owner: "{{ lookup('env', 'USER') }}"
+        group: docker
+        mode: 0775
+
+    - name: Create a new xfs on data disk 
+      community.general.parted:
+        device: {{ data_disk }}
+        number: 1
+        state: present
+        fs_type: xfs
+
+    - name: Mount data disk to gluster storage root
+      ansible.posix.mount:
+        path: {{ gluster_storage_root }}
+        src: {{ data_disk }}
+        fstype: xfs
+        opts: defaults 0 0
+        state: mounted 
+
+    - name: Create a trusted storage pool
+      gluster.gluster.gluster_peer:
+        state: present
+        nodes: "{{ target_hosts | d([]) }}"
+
+    - name: Create gluster volume
+      gluster.gluster.gluster_volume:
+        state: present
+        name: docker-vol
+        bricks: {{ gluster_mnt_root }}
+        rebalance: yes
+        cluster: "{{ target_hosts | d([]) }}"
+      run_once: true
+      register: gfs_vol_creation_outcome
+
+    - name: Start gluster volume
+      gluster.gluster.gluster_volume:
+        state: started
+        name: docker-vol
+      changed_when: gfs_vol_creation_outcome.failed == 'false'

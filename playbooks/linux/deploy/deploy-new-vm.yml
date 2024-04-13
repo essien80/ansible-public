@@ -1,0 +1,8 @@
+--- 
+ - import_playbook: ../installation/inst-core-vm.yml
+ - import_playbook: ../installation/inst-eza.yml
+ - import_playbook: ../installation/inst-nerd-fonts-jetbrainmono.yml
+ - import_playbook: ../installation/inst-starship.yml
+ - import_playbook: ../configuration/config-timezone-main.yml
+ - import_playbook: ../configuration/ssh/config-add-sshkey.yml
+ - import_playbook: ../configuration/config-yadm-repo.yml

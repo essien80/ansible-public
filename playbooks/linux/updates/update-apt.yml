@@ -1,0 +1,9 @@
+---
+- name: Check for and apply updates
+  hosts: '{{ target_hosts | d([]) }}'
+  become: true
+  tasks:
+    - name: Run ppt update and upgrade
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: true

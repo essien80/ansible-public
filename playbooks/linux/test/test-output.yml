@@ -1,0 +1,8 @@
+---
+- name: Output Test
+  hosts: '{{ target_hosts | d([]) }}'
+  tasks:
+    - name: Echo install_result
+      ansible.builtin.debug:
+        msg:
+          - "my_output is {{ lookup('env', 'USER') }}"

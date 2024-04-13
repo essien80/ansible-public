@@ -1,0 +1,9 @@
+- name: remove latest qemu-guest-agent
+  hosts: "*"
+  tasks:
+    - name: remove qemu-guest-agent
+      apt:
+        name: qemu-guest-agent
+        state: absent
+        update_cache: true
+      become: true

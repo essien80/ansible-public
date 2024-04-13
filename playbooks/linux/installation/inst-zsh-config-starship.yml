@@ -1,0 +1,33 @@
+---
+- name: Install zsh and configure starship
+  hosts: "{{ target_hosts | d([]) }}"
+  vars:
+    zshrcpath: "~/.zshrc"  # set to correct path for your system
+
+  tasks:
+    - name: Install zsh
+      ansible.builtin.apt:
+        name: zsh
+        state: present
+        update_cache: false
+      become: true
+
+    - name: Copy zsh config files
+      ansible.builtin.copy:
+        src: ../../../templates/.zsh
+        dest: ~/
+        backup: true
+        mode: preserve
+
+    - name: Apply configuration to zsh
+      ansible.builtin.blockinfile:
+        path: "{{ zshrcpath }}"
+        block: |
+          [[ -f ~/.zsh/wsl2fix.zsh ]] && source ~/.zsh/wsl2fix.zsh
+          [[ -f ~/.zsh/functions.zsh ]] && source ~/.zsh/functions.zsh
+          [[ -f ~/.zsh/starship.zsh ]] && source ~/.zsh/starship.zsh
+          # Load Starship
+          eval "$(starship init zsh)"
+        state: present
+        create: true
+        mode: "0644"

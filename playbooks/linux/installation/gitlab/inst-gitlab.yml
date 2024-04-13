@@ -1,0 +1,16 @@
+- name: Install and configure Gitlab
+  hosts: '{{ target_hosts | d([]) }}'
+  become: true
+  tasks:
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - gpg
+          - curl
+          - openssh-server
+          - ca-certificates
+          - tzdata
+          - perl
+        #  - postfix
+        state: present
+        update_cache: true

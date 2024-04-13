@@ -1,0 +1,11 @@
+---
+- name: Setup Manager Nodes
+  gather_facts: true
+  hosts: cluster_managers[0]
+  become: true
+
+  tasks:
+
+    - name: Init a new swarm with default parameters
+      community.docker.docker_swarm:
+        state: present

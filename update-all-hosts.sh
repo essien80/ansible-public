@@ -1,0 +1,1 @@
+ansible-playbook ./playbooks/linux/updates/update-apt.yml --ask-become-pass -i ./inventory/hosts.yml -e target_hosts=hosts_vm

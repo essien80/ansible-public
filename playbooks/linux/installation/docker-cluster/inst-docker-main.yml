@@ -1,0 +1,4 @@
+---
+ - import-playbook: 1-inst-docker-dependencies.yml
+ - import-playbook: 2-inst-docker-glusterfs.yml
+ - import-playbook: 3-inst-docker-setup-managers.yml

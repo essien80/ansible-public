@@ -1,0 +1,59 @@
+---
+- name: Install Webmin, add key and repo
+  hosts: '{{ target_hosts | d([]) }}'
+  vars:
+    webmin_key_path: "/etc/apt/trusted.gpg.d/webmin-developers.gpg"  # set to correct path for your system
+  become: true
+  tasks:
+
+    - name: Install GPG
+      ansible.builtin.apt:
+        name: gpg
+        state: present
+        update_cache: true
+
+    - name: Check if Webmin key exists
+      become: true
+      ansible.builtin.stat:
+        path: '{{ webmin_key_path }}'
+      changed_when: false
+      register: webmin_key
+
+    - name: Install Key if missing
+      when: not webmin_key.stat.exists
+      block:
+        - name: Download Webmin key
+          ansible.builtin.get_url:
+            url: https://download.webmin.com/jcameron-key.asc
+            dest: /tmp/jcameron-key.asc
+            mode: '0755'
+          register: key_downloaded
+
+        - name: Add Webmin key
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              cat /tmp/jcameron-key.asc  | gpg --dearmor -o /etc/apt/trusted.gpg.d/webmin-developers.gpg
+            executable: /bin/bash
+          become: true
+          changed_when: key_downloaded.failed == 'False'
+
+    - name: Add Webmin repositories
+      ansible.builtin.apt_repository:
+        repo: "deb http://download.webmin.com/download/repository sarge contrib"
+        # repo: "deb [signed-by=/etc/apt/trusted.gpg.d/webmin-developers.gpg] https://download.webmin.com/download/newkey/repository stable contrib"
+        # repo: "deb [signed-by=/etc/apt/trusted.gpg.d/webmin-developers.gpg] http://download.webmin.com/download/repository sarge contrib"
+        state: present
+        filename: webmin
+
+    - name: Install Webmin
+      ansible.builtin.apt:
+        name: webmin
+        state: present
+        update_cache: true
+
+    - name: Start and Enable Webmin
+      ansible.builtin.service:
+        name: webmin
+        state: started
+        enabled: true
