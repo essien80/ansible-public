@@ -2,7 +2,6 @@
 - name: Install and configure eza
   hosts: '{{ target_hosts | d([]) }}'
   vars:
-    bashrcpath: "~/.bashrc"  # set to correct path for your system
     key_path: "/etc/apt/trusted.gpg.d/gierens.gpg"  # set to correct path for your system
   become: true
   tasks:
